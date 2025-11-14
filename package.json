@@ -4,7 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "dev": "bun index.html",
+    "build": "bun build index.html --outdir=dist --minify"
+    
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

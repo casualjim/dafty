@@ -25,11 +25,16 @@ export default defineConfig({
   ],
   use: {
     actionTimeout: 5_000,
-    baseURL: undefined,
+    baseURL: "http://localhost:3000",
     viewport: { width: 1280, height: 720 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retry-with-video",
+  },
+  webServer: {
+    command: "bun index.ts",
+    port: 3000,
+    reuseExistingServer: true,
   },
   projects: [
     {

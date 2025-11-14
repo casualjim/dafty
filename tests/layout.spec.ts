@@ -1,10 +1,9 @@
 import { expect, test } from "@playwright/test";
 
-const ENTRY_URL = new URL("../index.html", import.meta.url).href;
-
 test.describe("Left rail interactions", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(ENTRY_URL, { waitUntil: "domcontentloaded" });
+    await page.goto("/");
+    await page.waitForFunction(() => (window as any).Alpine !== undefined);
   });
 
   test("rail exposes the workspace icon buttons", async ({ page }) => {
@@ -33,5 +32,285 @@ test.describe("Left rail interactions", () => {
     await toggle.click();
     await expect(dropdown).not.toHaveAttribute("open", "");
     await expect(menu).not.toBeVisible();
+  });
+});
+
+test.describe("Sidebar interactions", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => (window as any).Alpine !== undefined);
+  });
+
+  test("left sidebar is visible by default", async ({ page }) => {
+    const leftSidebar = page.locator('[aria-label="Left sidebar"]');
+    await expect(leftSidebar).toBeVisible();
+  });
+
+  test("right sidebar is visible by default", async ({ page }) => {
+    const rightSidebar = page.locator('[aria-label="Right sidebar"]');
+    await expect(rightSidebar).toBeVisible();
+  });
+
+  test("can toggle left sidebar visibility", async ({ page }) => {
+    const toggleButton = page.getByLabel("Toggle left sidebar");
+    const leftSidebar = page.locator('[aria-label="Left sidebar"]');
+
+    // Initially visible
+    await expect(leftSidebar).toBeVisible();
+
+    // Click to hide
+    await toggleButton.click();
+    await expect(leftSidebar).toBeHidden();
+
+    // Click to show
+    await toggleButton.click();
+    await expect(leftSidebar).toBeVisible();
+  });
+
+  test("can toggle right sidebar visibility", async ({ page }) => {
+    const toggleButton = page.getByLabel("Toggle right sidebar");
+    const rightSidebar = page.locator('[aria-label="Right sidebar"]');
+
+    // Initially visible
+    await expect(rightSidebar).toBeVisible();
+
+    // Click to hide
+    await toggleButton.click();
+    await expect(rightSidebar).toBeHidden();
+
+    // Click to show
+    await toggleButton.click();
+    await expect(rightSidebar).toBeVisible();
+  });
+
+  test("left sidebar has correct default width", async ({ page }) => {
+    const leftSidebar = page.locator('[aria-label="Left sidebar"]');
+    const width = await leftSidebar.evaluate(el => el.getBoundingClientRect().width);
+    expect(width).toBeGreaterThanOrEqual(319);
+    expect(width).toBeLessThanOrEqual(321);
+  });
+
+  test("right sidebar has correct default width", async ({ page }) => {
+    const rightSidebar = page.locator('[aria-label="Right sidebar"]');
+    const width = await rightSidebar.evaluate(el => el.getBoundingClientRect().width);
+    expect(width).toBeGreaterThanOrEqual(319);
+    expect(width).toBeLessThanOrEqual(321);
+  });
+
+  test("left sidebar can be resized by dragging", async ({ page }) => {
+    const leftSidebar = page.locator('[aria-label="Left sidebar"]');
+    const resizeHandle = leftSidebar.locator('[data-resize-handle="left"]');
+    
+    const initialWidth = await leftSidebar.evaluate(el => el.getBoundingClientRect().width);
+    
+    // Drag resize handle to the right
+    const box = await resizeHandle.boundingBox();
+    if (!box) throw new Error("Resize handle not found");
+    
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 100, box.y + box.height / 2);
+    await page.mouse.up();
+    
+    const newWidth = await leftSidebar.evaluate(el => el.getBoundingClientRect().width);
+    expect(newWidth).toBeGreaterThan(initialWidth);
+  });
+
+  test("right sidebar can be resized by dragging", async ({ page }) => {
+    const rightSidebar = page.locator('[aria-label="Right sidebar"]');
+    const resizeHandle = rightSidebar.locator('[data-resize-handle="right"]');
+    
+    const initialWidth = await rightSidebar.evaluate(el => el.getBoundingClientRect().width);
+    
+    // Drag resize handle to the left
+    const box = await resizeHandle.boundingBox();
+    if (!box) throw new Error("Resize handle not found");
+    
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x - 100, box.y + box.height / 2);
+    await page.mouse.up();
+    
+    const newWidth = await rightSidebar.evaluate(el => el.getBoundingClientRect().width);
+    expect(newWidth).toBeGreaterThan(initialWidth);
+  });
+
+  test("left sidebar auto-collapses when resized below 5px", async ({ page }) => {
+    const leftSidebar = page.locator('[aria-label="Left sidebar"]');
+    const resizeHandle = leftSidebar.locator('[data-resize-handle="left"]');
+    
+    // Drag resize handle far to the left to trigger auto-collapse
+    const box = await resizeHandle.boundingBox();
+    if (!box) throw new Error("Resize handle not found");
+    
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x - 400, box.y + box.height / 2);
+    await page.mouse.up();
+    
+    // Should be hidden
+    await expect(leftSidebar).toBeHidden();
+    
+    // When toggled back, should have default width
+    const toggleButton = page.getByLabel("Toggle left sidebar");
+    await toggleButton.click();
+    await expect(leftSidebar).toBeVisible();
+    const width = await leftSidebar.evaluate(el => el.getBoundingClientRect().width);
+    expect(width).toBeGreaterThanOrEqual(319);
+    expect(width).toBeLessThanOrEqual(321);
+  });
+
+  test("right sidebar auto-collapses when resized below 5px", async ({ page }) => {
+    const rightSidebar = page.locator('[aria-label="Right sidebar"]');
+    const resizeHandle = rightSidebar.locator('[data-resize-handle="right"]');
+    
+    // Drag resize handle far to the right to trigger auto-collapse
+    const box = await resizeHandle.boundingBox();
+    if (!box) throw new Error("Resize handle not found");
+    
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 400, box.y + box.height / 2);
+    await page.mouse.up();
+    
+    // Should be hidden
+    await expect(rightSidebar).toBeHidden();
+    
+    // When toggled back, should have default width
+    const toggleButton = page.getByLabel("Toggle right sidebar");
+    await toggleButton.click();
+    await expect(rightSidebar).toBeVisible();
+    const width = await rightSidebar.evaluate(el => el.getBoundingClientRect().width);
+    expect(width).toBeGreaterThanOrEqual(319);
+    expect(width).toBeLessThanOrEqual(321);
+  });
+
+  test("main content area is scrollable independently", async ({ page }) => {
+    const mainContent = page.locator('[aria-label="Main content area"]');
+    const scrollable = await mainContent.evaluate(el => {
+      return el.scrollHeight > el.clientHeight || 
+             getComputedStyle(el).overflowY === 'auto' || 
+             getComputedStyle(el).overflowY === 'scroll';
+    });
+    expect(scrollable).toBeTruthy();
+  });
+
+  test("left sidebar is scrollable independently", async ({ page }) => {
+    const leftSidebar = page.locator('[aria-label="Left sidebar"]');
+    const scrollable = await leftSidebar.evaluate(el => {
+      return getComputedStyle(el).overflowY === 'auto' || 
+             getComputedStyle(el).overflowY === 'scroll';
+    });
+    expect(scrollable).toBeTruthy();
+  });
+
+  test("right sidebar is scrollable independently", async ({ page }) => {
+    const rightSidebar = page.locator('[aria-label="Right sidebar"]');
+    const scrollable = await rightSidebar.evaluate(el => {
+      return getComputedStyle(el).overflowY === 'auto' || 
+             getComputedStyle(el).overflowY === 'scroll';
+    });
+    expect(scrollable).toBeTruthy();
+  });
+});
+
+test.describe("Theme toggle interactions", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => (window as any).Alpine !== undefined);
+  });
+
+  test("theme toggle button is visible", async ({ page }) => {
+    const themeToggle = page.getByLabel("Toggle theme");
+    await expect(themeToggle).toBeVisible();
+  });
+
+  test("cycles through theme states: system → light → dark → system", async ({ page }) => {
+    const themeToggle = page.getByLabel("Toggle theme");
+    
+    // Click to go to light
+    await themeToggle.click();
+    let theme = await page.evaluate(() => localStorage.getItem("theme"));
+    expect(theme).toBe("light");
+    
+    // Click to go to dark
+    await themeToggle.click();
+    theme = await page.evaluate(() => localStorage.getItem("theme"));
+    expect(theme).toBe("dark");
+    
+    // Click to go back to system (removes from localStorage)
+    await themeToggle.click();
+    theme = await page.evaluate(() => localStorage.getItem("theme"));
+    expect(theme).toBe("system");
+  });
+
+  test("persists theme preference in localStorage", async ({ page }) => {
+    const themeToggle = page.getByLabel("Toggle theme");
+    
+    // Wait for Alpine to initialize
+    await page.waitForTimeout(100);
+    
+    // Set to light theme
+    await themeToggle.click();
+    await page.waitForTimeout(100);
+    
+    const theme = await page.evaluate(() => localStorage.getItem("theme"));
+    expect(theme).toBe("light");
+    
+    // Reload page
+    await page.reload();
+    await page.waitForTimeout(100);
+    
+    // Should still be light theme
+    const reloadedTheme = await page.evaluate(() => localStorage.getItem("theme"));
+    expect(reloadedTheme).toBe("light");
+  });
+
+  test("applies correct data-theme attribute to html element", async ({ page }) => {
+    const themeToggle = page.getByLabel("Toggle theme");
+    
+    // Start with system theme (initTheme sets data-theme based on system preference)
+    let dataTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+    expect(["light", "dark"]).toContain(dataTheme); // System theme could be either
+    
+    // Click to light
+    await themeToggle.click();
+    dataTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+    expect(dataTheme).toBe("light");
+    
+    // Click to dark
+    await themeToggle.click();
+    dataTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+    expect(dataTheme).toBe("dark");
+    
+    // Click back to system (sets to system preference)
+    await themeToggle.click();
+    dataTheme = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+    expect(["light", "dark"]).toContain(dataTheme); // System theme could be either
+  });
+});
+
+test.describe("Resize handle visibility", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForFunction(() => (window as any).Alpine !== undefined);
+  });
+
+  test("left sidebar resize handle is visible", async ({ page }) => {
+    const leftSidebar = page.locator('[aria-label="Left sidebar"]');
+    const resizeHandle = leftSidebar.locator('[data-resize-handle="left"]');
+    await expect(resizeHandle).toBeVisible();
+  });
+
+  test("right sidebar resize handle is visible", async ({ page }) => {
+    const rightSidebar = page.locator('[aria-label="Right sidebar"]');
+    const resizeHandle = rightSidebar.locator('[data-resize-handle="right"]');
+    await expect(resizeHandle).toBeVisible();
+  });
+
+  test("resize handle has correct cursor style", async ({ page }) => {
+    const leftHandle = page.locator('[data-resize-handle="left"]');
+    const cursor = await leftHandle.evaluate(el => getComputedStyle(el).cursor);
+    expect(cursor).toBe("col-resize");
   });
 });
