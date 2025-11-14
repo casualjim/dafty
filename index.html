@@ -7,9 +7,9 @@
   <link rel="stylesheet" href="./styles.css" />
   <script type="module" src="./script.ts" defer></script>
 </head>
-<body class="min-h-screen bg-base-100 text-base-content" x-data="{ 
-  leftSidebar: true, 
-  rightSidebar: true,
+<body class="min-h-screen bg-base-100 text-base-content overflow-x-hidden" x-data="{ 
+  leftSidebar: window.innerWidth >= 1024, 
+  rightSidebar: window.innerWidth >= 1024,
   leftWidth: 320,
   rightWidth: 320,
   resizing: null,
@@ -79,7 +79,8 @@
 x-init="initTheme()"
 @mousemove.window="doResize($event)"
 @mouseup.window="stopResize()">
-  <div class="min-h-screen flex">
+  <div class="min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
+    <!-- Left Rail - Desktop Only -->
     <aside
       class="hidden lg:flex lg:w-20 lg:flex-col lg:justify-between lg:border-r lg:border-base-300 lg:bg-base-200 lg:py-4 lg:px-2"
       aria-label="Workspace navigation"
@@ -99,7 +100,7 @@ x-init="initTheme()"
           <span>!</span>
         </button>
       </div>
-      <details class="dropdown dropdown-end dropdown-right px-1" data-profile-dropdown>
+      <details class="dropdown dropdown-end dropdown-right px-1" data-profile-dropdown @click.outside="$el.removeAttribute('open')">
         <summary
           id="profile-toggle"
           aria-haspopup="true"
@@ -114,13 +115,13 @@ x-init="initTheme()"
             class="dropdown-content menu rounded-box z-21 mt-2 w-44 bg-base-100 p-2 shadow dropdown-bottom"
         >
           <li>
-            <a role="menuitem">Profile</a>
+            <a role="menuitem" class="active:bg-base-200">Profile</a>
           </li>
           <li>
-            <a role="menuitem">Settings</a>
+            <a role="menuitem" class="active:bg-base-200">Settings</a>
           </li>
           <li>
-            <a role="menuitem">Sign out</a>
+            <a role="menuitem" class="active:bg-base-200">Sign out</a>
           </li>
         </ul>
       </details>
@@ -134,8 +135,15 @@ x-init="initTheme()"
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-3">
             <button 
+              @click="if (window.innerWidth < 1024 && !leftSidebar) rightSidebar = false; leftSidebar = !leftSidebar" 
+              class="btn btn-sm btn-ghost btn-square lg:hidden"
+              aria-label="Toggle left sidebar"
+            >
+              <i data-lucide="menu" class="w-4 h-4"></i>
+            </button>
+            <button 
               @click="leftSidebar = !leftSidebar" 
-              class="btn btn-sm btn-ghost btn-square"
+              class="hidden lg:inline-flex btn btn-sm btn-ghost btn-square"
               aria-label="Toggle left sidebar"
             >
               <i x-show="leftSidebar" data-lucide="panel-left-close" class="w-4 h-4"></i>
@@ -145,8 +153,6 @@ x-init="initTheme()"
             <span class="badge badge-outline badge-primary">Workspace</span>
           </div>
           <div class="flex items-center gap-2">
-            <button class="btn btn-sm btn-ghost">Create</button>
-            <button class="btn btn-sm btn-primary">Invite</button>
             <button 
               @click="cycleTheme()" 
               class="btn btn-sm btn-ghost btn-circle"
@@ -157,8 +163,15 @@ x-init="initTheme()"
               <ph-moon x-show="theme === 'dark'" size="20"></ph-moon>
             </button>
             <button 
+              @click="if (window.innerWidth < 1024 && !rightSidebar) leftSidebar = false; rightSidebar = !rightSidebar" 
+              class="btn btn-sm btn-ghost btn-square lg:hidden"
+              aria-label="Toggle right sidebar"
+            >
+              <i data-lucide="menu" class="w-4 h-4"></i>
+            </button>
+            <button 
               @click="rightSidebar = !rightSidebar" 
-              class="btn btn-sm btn-ghost btn-square"
+              class="hidden lg:inline-flex btn btn-sm btn-ghost btn-square"
               aria-label="Toggle right sidebar"
             >
               <i x-show="rightSidebar" data-lucide="panel-right-close" class="w-4 h-4"></i>
@@ -169,10 +182,23 @@ x-init="initTheme()"
       </header>
 
       <div class="flex flex-1 overflow-hidden">
+        <!-- Backdrop for mobile drawers -->
+        <div 
+          x-show="leftSidebar || rightSidebar"
+          x-transition:enter="transition-opacity ease-out duration-300"
+          x-transition:enter-start="opacity-0"
+          x-transition:enter-end="opacity-100"
+          x-transition:leave="transition-opacity ease-in duration-300"
+          x-transition:leave-start="opacity-100"
+          x-transition:leave-end="opacity-0"
+          class="lg:hidden fixed inset-0 bg-black/50 z-20"
+        ></div>
+        
         <!-- Left Sidebar -->
         <aside 
           aria-label="Left sidebar"
           x-show="leftSidebar"
+          @click.outside="if (window.innerWidth < 1024) leftSidebar = false"
           x-transition:enter="transition-all ease-out duration-300"
           x-transition:enter-start="-ml-80 opacity-0"
           x-transition:enter-end="ml-0 opacity-100"
@@ -180,7 +206,7 @@ x-init="initTheme()"
           x-transition:leave-start="ml-0 opacity-100"
           x-transition:leave-end="-ml-80 opacity-0"
           :style="`width: ${leftWidth}px`"
-          class="border-r border-base-300 bg-base-200 overflow-y-auto shrink-0 relative"
+          class="border-r border-base-300 bg-base-200 overflow-y-auto shrink-0 fixed lg:relative left-0 top-0 bottom-0 z-30 lg:z-auto"
         >
           <div class="p-4 space-y-6">
             <section class="card bg-base-100 shadow rounded-lg">
@@ -226,7 +252,7 @@ x-init="initTheme()"
         </aside>
 
         <!-- Main Content Area -->
-        <main aria-label="Main content area" class="flex-1 overflow-y-auto px-4 py-6 pb-24 space-y-6">
+        <main aria-label="Main content area" class="flex-1 overflow-y-auto px-4 py-6 pb-28 lg:pb-6 space-y-6">
           <section class="card bg-base-100 shadow rounded-lg">
             <div class="card-body">
               <div class="flex items-center justify-between">
@@ -289,6 +315,7 @@ x-init="initTheme()"
         <aside 
           aria-label="Right sidebar"
           x-show="rightSidebar"
+          @click.outside="if (window.innerWidth < 1024) rightSidebar = false"
           x-transition:enter="transition-all ease-out duration-300"
           x-transition:enter-start="-mr-80 opacity-0"
           x-transition:enter-end="mr-0 opacity-100"
@@ -296,7 +323,7 @@ x-init="initTheme()"
           x-transition:leave-start="mr-0 opacity-100"
           x-transition:leave-end="-mr-80 opacity-0"
           :style="`width: ${rightWidth}px`"
-          class="border-l border-base-300 bg-base-200 overflow-y-auto shrink-0 relative"
+          class="border-l border-base-300 bg-base-200 overflow-y-auto shrink-0 fixed lg:relative right-0 top-0 bottom-0 z-30 lg:z-auto"
         >
           <!-- Resize handle -->
           <div 
@@ -335,36 +362,47 @@ x-init="initTheme()"
           </div>
         </aside>
       </div>
-
-      <footer
-        class="sticky bottom-0 z-20 border-t border-base-300 bg-base-100/90 px-4 py-3 backdrop-blur"
-      >
-        <div class="flex items-center justify-between text-sm text-base-content/70">
-          <span>© 2025 Slipstream</span>
-          <div class="flex gap-4">
-            <span>Help</span>
-            <span>Status</span>
-          </div>
-        </div>
-      </footer>
     </div>
   </div>
 
-  <nav class="lg:hidden fixed bottom-0 left-0 right-0 border-t border-base-300 bg-base-100/90 px-4 py-2 backdrop-blur">
-    <div class="mx-auto flex max-w-md items-center justify-between">
-      <button class="btn btn-ghost btn-square" aria-label="Home">
-        <span>H</span>
+  <!-- Mobile Dock - Bottom -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between border-t border-base-300 bg-base-200 px-4 py-2" aria-label="Mobile workspace navigation">
+    <div class="flex items-center gap-4">
+      <button class="btn btn-ghost btn-sm" aria-label="Home workspace">
+        <span class="text-2xl">✦</span>
       </button>
-      <button class="btn btn-ghost btn-square" aria-label="Docs">
-        <span>D</span>
+      <button class="btn btn-ghost btn-sm" aria-label="Shared spaces">
+        <span class="text-xl">⚙</span>
       </button>
-      <button class="btn btn-ghost btn-square" aria-label="Spaces">
-        <span>S</span>
+      <button class="btn btn-ghost btn-sm" aria-label="Boards">
+        <span class="text-xl">≡</span>
       </button>
-      <button class="btn btn-ghost btn-square" aria-label="Notifications">
-        <span>N</span>
+      <button class="btn btn-ghost btn-sm" aria-label="Notifications">
+        <span class="text-xl">!</span>
       </button>
     </div>
+    <details class="dropdown dropdown-top relative" data-profile-dropdown-mobile @click.outside="$el.removeAttribute('open')">
+      <summary
+        aria-haspopup="true"
+        aria-label="Profile menu"
+        class="btn btn-ghost btn-circle avatar text-base-content text-sm">IV</summary>
+        <ul
+        role="menu"
+        aria-label="Profile menu"
+          class="dropdown-content menu rounded-box z-21 mb-2 w-max bg-base-100 px-3 py-2 shadow absolute right-0"
+      >
+        <li>
+          <a role="menuitem" class="active:bg-base-200">Profile</a>
+        </li>
+        <li>
+          <a role="menuitem" class="active:bg-base-200">Settings</a>
+        </li>
+        <li>
+          <a role="menuitem" class="active:bg-base-200">Sign out</a>
+        </li>
+      </ul>
+    </details>
   </nav>
+
 </body>
 </html>
