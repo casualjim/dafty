@@ -1,0 +1,25 @@
+{
+  "name": "frontend-static2",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/alpinejs": "^3.13.11",
+    "@types/bun": "latest",
+    "bun-plugin-tailwind": "^0.1.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@phosphor-icons/webcomponents": "^2.1.5",
+    "alpinejs": "^3.15.1",
+    "daisyui": "^5.5.3",
+    "lucide": "^0.553.0",
+    "tailwindcss": "^4.1.17"
+  }
+}
