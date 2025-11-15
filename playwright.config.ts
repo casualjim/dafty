@@ -32,7 +32,7 @@ export default defineConfig({
     video: "retry-with-video",
   },
   webServer: {
-    command: "bun index.ts",
+    command: "bun run dev",
     port: 3000,
     reuseExistingServer: true,
   },

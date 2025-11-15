@@ -7,7 +7,6 @@
     "test": "playwright test",
     "dev": "bun index.html",
     "build": "bun build index.html --outdir=dist --minify"
-    
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
@@ -22,6 +21,7 @@
     "@phosphor-icons/webcomponents": "^2.1.5",
     "alpinejs": "^3.15.1",
     "daisyui": "^5.5.3",
+    "htmx.org": "^2.0.8",
     "lucide": "^0.553.0",
     "tailwindcss": "^4.1.17"
   }

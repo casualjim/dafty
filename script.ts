@@ -1,4 +1,5 @@
 import Alpine from 'alpinejs';
+import htmx from 'htmx.org';
 import '@phosphor-icons/webcomponents/PhCircleHalf';
 import '@phosphor-icons/webcomponents/PhSun';
 import '@phosphor-icons/webcomponents/PhMoon';
@@ -16,8 +17,128 @@ createIcons({
   }
 });
 
+// Define layout state component
+Alpine.data('layoutState', () => ({
+  leftSidebar: window.innerWidth >= 1024,
+  rightSidebar: window.innerWidth >= 1024,
+  leftWidth: 320,
+  rightWidth: 320,
+  resizing: null as string | null,
+  startX: 0,
+  startWidth: 0,
+  theme: 'system',
+  contextPath: window.location.pathname,
+  
+  async loadState() {
+    try {
+      const response = await fetch(`/api/layout?path=${encodeURIComponent(this.contextPath)}`);
+      if (response.ok) {
+        const data = await response.json();
+        const settings = data.settings || {};
+        
+        // Apply loaded settings
+        if (window.innerWidth >= 1024) {
+          this.leftSidebar = settings.left_sidebar_open ?? true;
+          this.rightSidebar = settings.right_sidebar_open ?? true;
+        }
+        this.leftWidth = settings.left_width ?? 320;
+        this.rightWidth = settings.right_width ?? 320;
+        this.theme = settings.theme ?? 'system';
+        this.applyTheme();
+      }
+    } catch (error) {
+      console.error('Failed to load layout state:', error);
+    }
+  },
+  
+  saveState(updates: Record<string, any>) {
+    // Debounce saves to avoid hammering the server
+    if ((this as any).saveTimeout) {
+      clearTimeout((this as any).saveTimeout);
+    }
+    
+    (this as any).saveTimeout = setTimeout(() => {
+      fetch('/api/layout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: this.contextPath, ...updates })
+      }).catch(error => {
+        console.error('Failed to save layout state:', error);
+      });
+    }, 300);
+  },
+  
+  startResize(side: string, e: MouseEvent) {
+    this.resizing = side;
+    this.startX = e.clientX;
+    this.startWidth = side === 'left' ? this.leftWidth : this.rightWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  },
+  
+  doResize(e: MouseEvent) {
+    if (!this.resizing) return;
+    const delta = this.resizing === 'left' ? (e.clientX - this.startX) : (this.startX - e.clientX);
+    const newWidth = this.startWidth + delta;
+    if (newWidth <= 5) {
+      if (this.resizing === 'left') {
+        this.leftSidebar = false;
+        this.leftWidth = 320;
+        this.saveState({ left_sidebar_open: false });
+      } else {
+        this.rightSidebar = false;
+        this.rightWidth = 320;
+        this.saveState({ right_sidebar_open: false });
+      }
+      this.stopResize();
+      return;
+    }
+    if (this.resizing === 'left') {
+      this.leftWidth = newWidth;
+    } else {
+      this.rightWidth = newWidth;
+    }
+  },
+  
+  stopResize() {
+    if (this.resizing) {
+      // Save width on resize complete
+      if (this.resizing === 'left') {
+        this.saveState({ left_width: this.leftWidth });
+      } else {
+        this.saveState({ right_width: this.rightWidth });
+      }
+    }
+    this.resizing = null;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  },
+  
+  cycleTheme() {
+    if (this.theme === 'system') {
+      this.theme = 'light';
+    } else if (this.theme === 'light') {
+      this.theme = 'dark';
+    } else {
+      this.theme = 'system';
+    }
+    this.applyTheme();
+    this.saveState({ theme: this.theme });
+  },
+  
+  applyTheme() {
+    if (this.theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', systemTheme);
+    } else {
+      document.documentElement.setAttribute('data-theme', this.theme);
+    }
+  }
+}));
+
 window.Alpine = Alpine;
+window.htmx = htmx;
 
-Alpine.start()
+Alpine.start();
 
-console.log('Alpine.js has been started');
+console.log('Alpine.js and HTMX initialized');
