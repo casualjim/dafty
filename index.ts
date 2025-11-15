@@ -4,7 +4,7 @@ import { getLayoutState, updateLayoutState, hashPath } from "./db";
 
 const server = serve({
   hostname: "0.0.0.0",
-  port: 3000,
+  port: process.env.TEST_MODE ? 3001 : 3000,
   routes: {
     // ** HTML imports **
     // Bundle & route index.html to "/". This uses HTMLRewriter to scan
@@ -16,11 +16,12 @@ const server = serve({
     // API endpoint for layout state - handles both GET and POST
     "/api/layout": async (req) => {
       const url = new URL(req.url);
-      const userId = 'default'; // Hardcoded for now
+      const userId = req.headers.get("x-api-key") || 'default';
       
       if (req.method === "GET") {
         const path = url.searchParams.get("path") || "/";
-        const contextKey = hashPath(path);
+        const deviceType = (url.searchParams.get("device") as 'mobile' | 'desktop') || 'desktop';
+        const contextKey = hashPath(path, deviceType);
         
         let state = getLayoutState(contextKey, userId);
         
@@ -42,10 +43,11 @@ const server = serve({
           }
           
           const path = body.path || "/";
-          const contextKey = hashPath(path);
+          const deviceType = body.device || 'desktop';
+          const contextKey = hashPath(path, deviceType);
           
-          // Remove path from updates object
-          const { path: _, ...updates } = body;
+          // Remove path and device from updates object
+          const { path: _, device: __, ...updates } = body;
           
           const state = updateLayoutState(contextKey, updates, userId);
           return Response.json(state);

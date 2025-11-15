@@ -13,6 +13,7 @@ const retries = (() => {
 export default defineConfig({
   testDir: "./tests",
   timeout: 30_000,
+  globalSetup: "./tests/global-setup.ts",
   expect: {
     timeout: 5_000,
   },
@@ -25,16 +26,20 @@ export default defineConfig({
   ],
   use: {
     actionTimeout: 5_000,
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3001",
     viewport: { width: 1280, height: 720 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retry-with-video",
   },
   webServer: {
-    command: "bun run dev",
-    port: 3000,
-    reuseExistingServer: true,
+    command: "TEST_MODE=true bun run index.ts",
+    port: 3001,
+    reuseExistingServer: false,
+    env: {
+      TEST_MODE: "true",
+      DB_FILE: "test-slipstream.db"
+    }
   },
   projects: [
     {

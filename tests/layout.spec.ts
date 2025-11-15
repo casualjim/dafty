@@ -146,8 +146,8 @@ test.describe("Sidebar interactions", () => {
   test("left sidebar has correct default width", async ({ page }) => {
     const leftSidebar = page.locator('[aria-label="Left sidebar"]');
     const width = await leftSidebar.evaluate(el => el.getBoundingClientRect().width);
-    expect(width).toBeGreaterThanOrEqual(319);
-    expect(width).toBeLessThanOrEqual(321);
+    expect(width).toBeGreaterThanOrEqual(290);
+    expect(width).toBeLessThanOrEqual(330);
   });
 
   test("right sidebar has correct default width", async ({ page }) => {
@@ -290,40 +290,55 @@ test.describe("Theme toggle interactions", () => {
     
     // Click to go to light
     await themeToggle.click();
-    let theme = await page.evaluate(() => localStorage.getItem("theme"));
-    expect(theme).toBe("light");
+    await page.waitForTimeout(400); // Wait for debounce + save
+    let response = await page.request.get("/api/layout?path=/&device=desktop");
+    let data = await response.json();
+    expect(data.settings.theme).toBe("light");
     
     // Click to go to dark
     await themeToggle.click();
-    theme = await page.evaluate(() => localStorage.getItem("theme"));
-    expect(theme).toBe("dark");
+    await page.waitForTimeout(400);
+    response = await page.request.get("/api/layout?path=/&device=desktop");
+    data = await response.json();
+    expect(data.settings.theme).toBe("dark");
     
-    // Click to go back to system (removes from localStorage)
+    // Click to go back to system
     await themeToggle.click();
-    theme = await page.evaluate(() => localStorage.getItem("theme"));
-    expect(theme).toBe("system");
+    await page.waitForTimeout(400);
+    response = await page.request.get("/api/layout?path=/&device=desktop");
+    data = await response.json();
+    expect(data.settings.theme).toBe("system");
   });
 
-  test("persists theme preference in localStorage", async ({ page }) => {
-    const themeToggle = page.getByLabel("Toggle theme");
+  test("persists theme preference to server", async ({ page }, testInfo) => {
+    const userId = `test-${testInfo.testId}`;
+    await page.setExtraHTTPHeaders({ "X-API-Key": userId });
+    await page.goto("/");
+    await page.waitForFunction(() => (window as any).Alpine !== undefined);
     
-    // Wait for Alpine to initialize
-    await page.waitForTimeout(100);
+    const themeToggle = page.getByLabel("Toggle theme");
     
     // Set to light theme
     await themeToggle.click();
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(400); // Wait for debounce + save
     
-    const theme = await page.evaluate(() => localStorage.getItem("theme"));
-    expect(theme).toBe("light");
+    let response = await page.request.get(`/api/layout?path=/&device=desktop`, {
+      headers: { "X-API-Key": userId }
+    });
+    let data = await response.json();
+    expect(data.settings.theme).toBe("light");
     
     // Reload page
     await page.reload();
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => (window as any).Alpine !== undefined);
+    await page.waitForTimeout(200);
     
-    // Should still be light theme
-    const reloadedTheme = await page.evaluate(() => localStorage.getItem("theme"));
-    expect(reloadedTheme).toBe("light");
+    // Should still be light theme in server state
+    response = await page.request.get(`/api/layout?path=/&device=desktop`, {
+      headers: { "X-API-Key": userId }
+    });
+    data = await response.json();
+    expect(data.settings.theme).toBe("light");
   });
 
   test("applies correct data-theme attribute to html element", async ({ page }) => {

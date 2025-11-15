@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "playwright test",
+    "test": "rm -f test-slipstream.db && playwright test",
     "dev": "bun index.html",
     "build": "bun build index.html --outdir=dist --minify"
   },

@@ -9,11 +9,9 @@
 </head>
 <body class="min-h-screen bg-base-100 text-base-content overflow-x-hidden" 
   x-data="layoutState" 
-  x-init="await loadState();
-    $watch('leftSidebar', (value) => saveState({ left_sidebar_open: value }));
-    $watch('rightSidebar', (value) => saveState({ right_sidebar_open: value }));"
-@mousemove.window="doResize($event)"
-@mouseup.window="stopResize()">
+  x-init="init()"
+  @mousemove.window="doResize($event)"
+  @mouseup.window="stopResize()">
   <div class="min-h-screen flex flex-col lg:flex-row overflow-x-hidden">
     <!-- Left Rail - Desktop Only -->
     <aside

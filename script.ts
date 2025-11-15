@@ -28,10 +28,29 @@ Alpine.data('layoutState', () => ({
   startWidth: 0,
   theme: 'system',
   contextPath: window.location.pathname,
+  deviceType: (window.innerWidth < 1024 ? 'mobile' : 'desktop') as 'mobile' | 'desktop',
+  userId: 'default',
+  
+  async init() {
+    await this.loadState();
+    
+    // Set up watchers after state is loaded
+    (this as any).$watch('leftSidebar', (value: boolean) => {
+      this.saveState({ left_sidebar_open: value });
+    });
+    (this as any).$watch('rightSidebar', (value: boolean) => {
+      this.saveState({ right_sidebar_open: value });
+    });
+    (this as any).$watch('theme', (value: string) => {
+      this.saveState({ theme: value });
+    });
+  },
   
   async loadState() {
     try {
-      const response = await fetch(`/api/layout?path=${encodeURIComponent(this.contextPath)}`);
+      const response = await fetch(`/api/layout?path=${encodeURIComponent(this.contextPath)}&device=${this.deviceType}`, {
+        headers: { 'X-API-Key': this.userId }
+      });
       if (response.ok) {
         const data = await response.json();
         const settings = data.settings || {};
@@ -60,8 +79,11 @@ Alpine.data('layoutState', () => ({
     (this as any).saveTimeout = setTimeout(() => {
       fetch('/api/layout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: this.contextPath, ...updates })
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-API-Key': this.userId 
+        },
+        body: JSON.stringify({ path: this.contextPath, device: this.deviceType, ...updates })
       }).catch(error => {
         console.error('Failed to save layout state:', error);
       });

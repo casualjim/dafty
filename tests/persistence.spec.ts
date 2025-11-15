@@ -6,10 +6,14 @@ test.describe("Layout state persistence", () => {
     await page.waitForFunction(() => (window as any).Alpine !== undefined);
   });
 
-  test("loads saved layout state from server", async ({ page }) => {
+  test("loads saved layout state from server", async ({ page }, testInfo) => {
+    const userId = `test-${testInfo.testId}`;
     // Set a specific state via API
     await page.request.post("/api/layout", {
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-API-Key": userId 
+      },
       data: {
         path: "/",
         left_sidebar_open: false,
@@ -18,8 +22,9 @@ test.describe("Layout state persistence", () => {
       }
     });
     
-    // Reload the page
-    await page.reload();
+    // Navigate with X-API-Key header
+    await page.setExtraHTTPHeaders({ "X-API-Key": userId });
+    await page.goto("/");
     await page.waitForFunction(() => (window as any).Alpine !== undefined);
     
     // Check that state was loaded
@@ -30,7 +35,11 @@ test.describe("Layout state persistence", () => {
     expect(theme).toBe('dark');
   });
 
-  test("persists sidebar toggle to server", async ({ page }) => {
+  test("persists sidebar toggle to server", async ({ page }, testInfo) => {
+    const userId = `test-${testInfo.testId}`;
+    await page.setExtraHTTPHeaders({ "X-API-Key": userId });
+    await page.goto("/");
+    
     const toggleButton = page.getByLabel("Toggle left sidebar").last();
     const leftSidebar = page.locator('[aria-label="Left sidebar"]');
     
@@ -44,29 +53,41 @@ test.describe("Layout state persistence", () => {
     // Wait a bit for the save
     await page.waitForTimeout(500);
     
-    // Check the server state
-    const response = await page.request.get("/api/layout?path=/");
+    // Check the server state for this user
+    const response = await page.request.get(`/api/layout?path=/&device=desktop`, {
+      headers: { "X-API-Key": userId }
+    });
     const data = await response.json();
     expect(data.settings.left_sidebar_open).toBe(false);
   });
 
-  test("persists theme changes to server", async ({ page }) => {
+  test("persists theme changes to server", async ({ page }, testInfo) => {
+    const userId = `test-${testInfo.testId}`;
+    await page.setExtraHTTPHeaders({ "X-API-Key": userId });
+    await page.goto("/");
+    
     const themeToggle = page.getByLabel("Toggle theme");
     
     // Cycle through themes
     await themeToggle.click(); // system -> light
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(400); // Wait for debounce (300ms) + buffer
     
     await themeToggle.click(); // light -> dark
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(400);
     
-    // Check server state
-    const response = await page.request.get("/api/layout?path=/");
+    // Check server state for this user
+    const response = await page.request.get(`/api/layout?path=/&device=desktop`, {
+      headers: { "X-API-Key": userId }
+    });
     const data = await response.json();
     expect(data.settings.theme).toBe('dark');
   });
 
-  test("persists resize width to server", async ({ page }) => {
+  test("persists resize width to server", async ({ page }, testInfo) => {
+    const userId = `test-${testInfo.testId}`;
+    await page.setExtraHTTPHeaders({ "X-API-Key": userId });
+    await page.goto("/");
+    
     const leftSidebar = page.locator('[aria-label="Left sidebar"]');
     const resizeHandle = leftSidebar.locator('[data-resize-handle="left"]');
     
@@ -84,18 +105,24 @@ test.describe("Layout state persistence", () => {
     // Wait for save
     await page.waitForTimeout(500);
     
-    // Check server state
-    const response = await page.request.get("/api/layout?path=/");
+    // Check server state for this user
+    const response = await page.request.get(`/api/layout?path=/&device=desktop`, {
+      headers: { "X-API-Key": userId }
+    });
     const data = await response.json();
     expect(data.settings.left_width).toBeGreaterThan(initialWidth);
   });
 
-  test("state persists across page reloads", async ({ page }) => {
+  test("state persists across page reloads", async ({ page }, testInfo) => {
+    const userId = `test-${testInfo.testId}`;
+    await page.setExtraHTTPHeaders({ "X-API-Key": userId });
+    await page.goto("/");
+    
     const toggleButton = page.getByLabel("Toggle right sidebar").last();
     
     // Toggle off
     await toggleButton.click();
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(400); // Wait for debounce
     
     // Reload
     await page.reload();

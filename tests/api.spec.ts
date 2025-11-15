@@ -21,12 +21,13 @@ test.describe("API endpoints", () => {
 
   test("POST /api/layout updates layout state", async ({ request }) => {
     // First, get current state
-    const getResponse = await request.get("/api/layout?path=/test");
+    const getResponse = await request.get("/api/layout?path=/test&device=desktop");
     const initialData = await getResponse.json();
     
     // Update the state
     const updatePayload = {
       path: "/test",
+      device: "desktop",
       left_sidebar_open: false,
       left_width: 400
     };
@@ -44,7 +45,7 @@ test.describe("API endpoints", () => {
     expect(updatedData.settings.left_width).toBe(400);
     
     // Verify the change persisted
-    const verifyResponse = await request.get("/api/layout?path=/test");
+    const verifyResponse = await request.get("/api/layout?path=/test&device=desktop");
     const verifiedData = await verifyResponse.json();
     expect(verifiedData.settings.left_sidebar_open).toBe(false);
     expect(verifiedData.settings.left_width).toBe(400);
@@ -76,7 +77,7 @@ test.describe("API endpoints", () => {
   test("POST with invalid JSON returns 400", async ({ request }) => {
     const response = await request.post("/api/layout", {
       headers: { "Content-Type": "application/json" },
-      body: "invalid json"
+      data: "invalid json"
     });
     
     expect(response.status()).toBe(400);

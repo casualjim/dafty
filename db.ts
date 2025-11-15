@@ -1,8 +1,9 @@
 import { randomUUIDv7 } from "bun";
 import { Database } from "bun:sqlite";
 
-// Initialize SQLite database
-const db = new Database("slipstream.db", { create: true });
+// Initialize SQLite database (use test db when TEST_MODE is set)
+const dbFile = process.env.DB_FILE || "slipstream.db";
+const db = new Database(dbFile, { create: true });
 
 // Create layout_state table if it doesn't exist
 db.run(`
@@ -21,9 +22,10 @@ db.run(`
   CREATE UNIQUE INDEX IF NOT EXISTS idx_user_context ON layout_state(user_id, context_key)
 `);
 
-// Helper function to hash URL paths for context keys
-export const hashPath = (path: string): string => {
-  const hash = new Bun.CryptoHasher("sha256").update(path).digest("hex");
+// Helper function to hash URL paths + device type for context keys
+export const hashPath = (path: string, deviceType: 'mobile' | 'desktop' = 'desktop'): string => {
+  const combined = `${path}:${deviceType}`;
+  const hash = new Bun.CryptoHasher("sha3-256").update(combined).digest("hex");
   return hash.substring(0, 16); // Use first 16 chars for readability
 };
 
